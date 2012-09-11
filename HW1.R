@@ -8,33 +8,34 @@ factors <- read.csv("F-F_Research_Data_Factors.csv", header=TRUE)
 
 # convert the dates (originally in YYYYMM integer form) into years and month
 #  size:
-years <- substr(as.character(size$date), 1, 4)
-months <- substr(as.character(size$date), 5, 6)
-size <- cbind(year=years, month=months, size[, -1])
-
+size$year <- as.numeric(substr(as.character(size$date), 1, 4))
+size$month <- as.numeric(substr(as.character(size$date), 5, 6))
 #  btm:
-years <- substr(as.character(btm$date), 1, 4)
-months <- substr(as.character(btm$date), 5, 6)
-btm <- cbind(year=years, month=months, btm[, -1])
-
+btm$year <- as.numeric(substr(as.character(btm$date), 1, 4))
+btm$month <- as.numeric(substr(as.character(btm$date), 5, 6))
 #  factors:
-years <- substr(as.character(factors$date), 1, 4)
-months <- substr(as.character(factors$date), 5, 6)
-factors <- cbind(year=years, month=months, factors[, -1])
+factors$year <- as.numeric(substr(as.character(factors$date), 1, 4))
+factors$month <- as.numeric(substr(as.character(factors$date), 5, 6))
 
 # merge the factors with the size and btm data frames by year and month
 size <- merge(size, factors, by=c("year", "month"))
 btm <- merge(btm, factors, by=c("year", "month"))
 
 # sort each data frame by year and month
-size <- size[order(btm$year, btm$month),]
+size <- size[order(size$year, size$month),]
 btm <- btm[order(btm$year, btm$month),]
 
-# prepare for looping across years
-# NOTE: I'm not sure whether we are supposed to filter out years that didn't
-#       include the entire fiscal year (trimming the last incomplete year)
-size$pyear <- factor(as.character(size$year))
-btm$pyear <- factor(as.character(btm$year))
+# adjust calendar years into fiscal years
+#  size:
+size$pyear <- size$year
+size$pyear[size$month < 7] <- size$pyear[size$month < 7] - 1
+size$pyear <- factor(as.character(size$pyear))
+#  btm:
+btm$pyear <- btm$year
+btm$pyear[btm$month < 7] <- btm$pyear[btm$month < 7] - 1
+btm$pyear <- factor(as.character(btm$pyear))
+
+# count the number of fiscal years
 years <- levels(size$pyear)
 nyear <- length(years)
 
@@ -43,14 +44,10 @@ size$zcp <- size$Q5 - size$Q1
 btm$zcp <- btm$Q5 - btm$Q1
 
 # initialize arrays for the annual coefficient estimates
-capm_output.size <- array(NaN, dim=c(nyear, 2))
-colnames(capm_output.size) <- c("alpha", "beta")
-capm_output.btm <- array(NaN, dim=c(nyear, 2))
-colnames(capm_output.btm) <- c("alpha", "beta")
-ff_output.size <- array(NaN, dim=c(nyear, 4))
-colnames(ff_output.size) <- c("alpha", "beta", "gamma", "delta")
-ff_output.btm <- array(NaN, dim=c(nyear, 4))
-colnames(ff_output.btm) <- c("alpha", "beta", "gamma", "delta")
+capm_output.size <- array(NaN, dim=c(nyear, 2), dimnames=list(NULL, c("alpha", "beta")))
+capm_output.btm <- array(NaN, dim=c(nyear, 2), dimnames=list(NULL, c("alpha", "beta")))
+ff_output.size <- array(NaN, dim=c(nyear, 4), dimnames=list(NULL, c("alpha", "beta", "gamma", "delta")))
+ff_output.btm <- array(NaN, dim=c(nyear, 4), dimnames=list(NULL, c("alpha", "beta", "gamma", "delta")))
 
 # run the regressions for each year
 for (t in 1:nyear) {
