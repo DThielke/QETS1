@@ -10,12 +10,15 @@ factors <- read.csv("F-F_Research_Data_Factors.csv", header=TRUE)
 #  size:
 size$year <- as.numeric(substr(as.character(size$date), 1, 4))
 size$month <- as.numeric(substr(as.character(size$date), 5, 6))
+size <- subset(size, select=c("year", "month", "Q1", "Q2", "Q3", "Q4", "Q5"))
 #  btm:
 btm$year <- as.numeric(substr(as.character(btm$date), 1, 4))
 btm$month <- as.numeric(substr(as.character(btm$date), 5, 6))
+btm <- subset(btm, select=c("year", "month", "Q1", "Q2", "Q3", "Q4", "Q5"))
 #  factors:
 factors$year <- as.numeric(substr(as.character(factors$date), 1, 4))
 factors$month <- as.numeric(substr(as.character(factors$date), 5, 6))
+factors <- subset(factors, select=c("year", "month", "EXMKT", "SMB", "HML", "RF"))
 
 # merge the factors with the size and btm data frames by year and month
 size <- merge(size, factors, by=c("year", "month"))
@@ -26,14 +29,8 @@ size <- size[order(size$year, size$month),]
 btm <- btm[order(btm$year, btm$month),]
 
 # adjust calendar years into fiscal years
-#  size:
-size$pyear <- size$year
-size$pyear[size$month < 7] <- size$pyear[size$month < 7] - 1
-size$pyear <- factor(as.character(size$pyear))
-#  btm:
-btm$pyear <- btm$year
-btm$pyear[btm$month < 7] <- btm$pyear[btm$month < 7] - 1
-btm$pyear <- factor(as.character(btm$pyear))
+size$pyear <- factor(as.character(ifelse(size$month < 7, size$year - 1, size$year)))
+btm$pyear <- factor(as.character(ifelse(btm$month < 7, btm$year - 1, btm$year)))
 
 # count the number of fiscal years
 years <- levels(size$pyear)
